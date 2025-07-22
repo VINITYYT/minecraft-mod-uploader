@@ -13,10 +13,16 @@ async function loadMods() {
   const res = await fetch('/mods');
   const mods = await res.json();
   modList.innerHTML = '';
+
+  // Download all button
+  const all = document.createElement('div');
+  all.innerHTML = `<a href="/download-all" download="mods.zip">Download All Mods (ZIP)</a>`;
+  modList.appendChild(all);
+
   mods.forEach(mod => {
     const el = document.createElement('div');
     el.innerHTML = `${mod.name} - <strong>${mod.isNewest ? 'Newest' : 'Old'}</strong> 
-      - <a href="/download/${mod.filename}">Download</a>`;
+      - <a href="/download/${mod.name}">Download</a>`;
     modList.appendChild(el);
   });
 }
