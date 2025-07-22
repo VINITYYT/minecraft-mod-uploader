@@ -3,15 +3,27 @@ const multer = require('multer');
 const archiver = require('archiver');
 const fs = require('fs');
 const path = require('path');
+const sanitize = require('sanitize-filename');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
 const uploadDir = path.join(__dirname, 'uploads');
+
+// Ensure uploads directory exists
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+// Multer storage with sanitized filenames
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, file.originalname)  // preserve original name
+  filename: (req, file, cb) => {
+    const cleanName = sanitize(file.originalname) || 'file';
+    cb(null, cleanName);
+  }
 });
+
 const upload = multer({ storage });
 
 app.use(express.static('public'));
@@ -23,7 +35,7 @@ app.post('/upload', upload.array('mods'), (req, res) => {
   res.redirect('/');
 });
 
-// Get mod list
+// List mods
 app.get('/mods', (req, res) => {
   fs.readdir(uploadDir, (err, files) => {
     if (err) return res.status(500).send('Upload directory error');
@@ -48,14 +60,15 @@ app.get('/mods', (req, res) => {
   });
 });
 
-// Download individual file
+// Download individual file with sanitized filename
 app.get('/download/:filename', (req, res) => {
-  const filePath = path.join(uploadDir, req.params.filename);
+  const safeName = sanitize(req.params.filename);
+  const filePath = path.join(uploadDir, safeName);
   if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
-  res.download(filePath, req.params.filename);
+  res.download(filePath, safeName);
 });
 
-// Download all as zip
+// Download all mods as ZIP
 app.get('/download-all', (req, res) => {
   const archive = archiver('zip', { zlib: { level: 9 } });
   res.attachment('mods.zip');
